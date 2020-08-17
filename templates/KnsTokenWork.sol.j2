@@ -4,7 +4,8 @@
  # Forced inlining for increased simplicity and gas efficiency.
  #
  # Inputs seed, secured_struct, nonce
- # - Let `p, q_0, q_1, q_2, ...` be the largest primes less than `2^25`, in descending order, excluding primes that are one more than a multiple of `12`.
+ # - Let `p` be the size of the memory buffer.
+ # - Let `q_0, q_1, q_2, ...` be relatively prime integers smaller than `p` (as large as possible is best).
  # - Let `w[i] = keccak256( seed, i )` for `0 <= i < p`.
  # - For `0 <= x < p`, let `f_a(x) = \sum_{i=0}^4 (a%q_i+1) x^i`.
  # - If `u` is a vector with `u = (u_0, ..., u_{n-1})` and each `0 <= u_i < p`, let `f_a(u)` denote point-wise application of `f_a`, i.e. `f_a(u) = (f_a(u_0), f_a(u_1), ..., f_a(u_{n-1}))`.

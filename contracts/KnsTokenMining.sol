@@ -25,6 +25,7 @@ contract KnsTokenMining
    uint256 public constant EMISSION_COEFF_1 = (MINEABLE_TOKENS * (20000 - FINAL_PRINT_RATE) * TOTAL_EMISSION_TIME);
    uint256 public constant EMISSION_COEFF_2 = (MINEABLE_TOKENS * (10000 - FINAL_PRINT_RATE));
    uint256 public constant HC_RESERVE_DECAY_TIME = 5 days;
+   uint256 public constant RECENT_BLOCK_LIMIT = 64;
 
    uint256 public start_time;
    uint256 public token_reserve;
@@ -94,7 +95,12 @@ contract KnsTokenMining
       ) public view
    {
       require( recent_eth_block_hash != 0, "Zero block hash not allowed" );
+      require( recent_eth_block_number <= block.number, "Recent block in future" );
+      require( recent_eth_block_number + RECENT_BLOCK_LIMIT > block.number, "Recent block too old" );
+      require( nonce >= recent_eth_block_hash, "Nonce too small" );
+      require( (recent_eth_block_hash + (1 << 128)) > nonce, "Nonce too large" );
       require( uint256( blockhash( recent_eth_block_number ) ) == recent_eth_block_hash, "Block hash mismatch" );
+
       require( user_pow_height[miner]+1 == pow_height, "pow_height mismatch" );
       uint256 h = get_secured_struct_hash( miner, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
       uint256[11] memory w = work( recent_eth_block_hash, h, nonce );
