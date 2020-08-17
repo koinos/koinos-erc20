@@ -1,0 +1,107 @@
+
+{#
+ # Code generator for the work algorithm.
+ # Forced inlining for increased simplicity and gas efficiency.
+ #
+ # Inputs seed, secured_struct, nonce
+ # - Let `p, q_0, q_1, q_2, ...` be the largest primes less than `2^25`, in descending order, excluding primes that are one more than a multiple of `12`.
+ # - Let `w[i] = keccak256( seed, i )` for `0 <= i < p`.
+ # - For `0 <= x < p`, let `f_a(x) = \sum_{i=0}^4 (a%q_i+1) x^i`.
+ # - If `u` is a vector with `u = (u_0, ..., u_{n-1})` and each `0 <= u_i < p`, let `f_a(u)` denote point-wise application of `f_a`, i.e. `f_a(u) = (f_a(u_0), f_a(u_1), ..., f_a(u_{n-1}))`.
+ # - If `v` is a vector of `256`-bit words, let `xor(v)` be the result of combining the components of `v` with the `XOR` bit-wise operation.
+ # - Let `h = keccak256(secured_struct)`.
+ # - Let `y_i = f_{nonce}(h%q_i) % p`.
+ # - For `0 <= i < 10`, define `work = xor(v) ^ h` where `v_i = w[y_i]` and `^` is the `XOR` bit-wise operation.
+ #}
+
+{#
+ #
+ # Set the values of local variables x, y as follows:
+ #
+ # x = xval
+ # y = f_nonce(xval) % p
+ #
+ #}
+{%- macro bday_compute_y(xval, deg_f, p) %}
+      x = {{ xval }};
+      y = coeff_{{ deg_f }};
+{% for i in range(deg_f) %}      y *= x;
+      y += coeff_{{ deg_f-i-1 }};
+{% endfor %}      y %= {{ "0x%08x"|format(p) }};
+{%- endmacro -%}
+
+{#
+ #
+ # Declare and set the local variable coeff_n.
+ # The value of coeff_n is the coefficient x^n in f_nonce(x).
+ #
+ #}
+{%- macro bday_define_coeff(deg_f, q) -%}
+{% for i in range(deg_f+1) %}      uint256 coeff_{{ i }} = (nonce % {{ "0x%08x"|format(q[i]) }})+1;
+{% endfor %}
+{%- endmacro -%}
+
+{#
+ # Set the values of local variables x, y, w, as follows:
+ #
+ # x = h%q_i
+ # y = y_i = f_{nonce}(h%q_i) % p
+ # w = w[y_i]
+ #
+ #}
+
+{%- macro bday_x(q, i) -%}
+secured_struct_hash % {{ "0x%08x"|format(q[i]) }}
+{%- endmacro -%}
+
+{%- macro generated_file_header() -%}
+/**************************************************************************************
+ *                                                                                    *
+ *                             GENERATED FILE DO NOT EDIT                             *
+ *   ___  ____  _  _  ____  ____    __   ____  ____  ____     ____  ____  __    ____  *
+ *  / __)( ___)( \( )( ___)(  _ \  /__\ (_  _)( ___)(  _ \   ( ___)(_  _)(  )  ( ___) *
+ * ( (_-. )__)  )  (  )__)  )   / /(__)\  )(   )__)  )(_) )   )__)  _)(_  )(__  )__)  *
+ *  \___/(____)(_)\_)(____)(_)\_)(__)(__)(__) (____)(____/   (__)  (____)(____)(____) *
+ *                                                                                    *
+ *                             GENERATED FILE DO NOT EDIT                             *
+ *                                                                                    *
+ **************************************************************************************/
+{%- endmacro -%}
+
+{{ generated_file_header() }}
+pragma solidity ^0.6.0;
+
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol";
+
+contract KnsTokenWork
+{
+   /**
+    * Compute the work function for a seed, secured_struct_hash, and nonce.
+    *
+    * work_result[{{ (q|length) }}] is the actual work function value, this is what is compared against the target.
+    * work_result[0] through work_result[{{ (q|length)-1 }}] (inclusive) are the values of w[y_i].
+    */
+   function work(
+      uint256 seed,
+      uint256 secured_struct_hash,
+      uint256 nonce
+      ) public pure returns (uint256[{{ (q|length)+1 }}] memory work_result)
+   {
+      uint256 w;
+      uint256 x;
+      uint256 y;
+      uint256 result = secured_struct_hash;
+{{ bday_define_coeff( deg_f, q ) }}
+
+{% for i in range( q|length ) %}
+{{ bday_compute_y( bday_x(q, i), deg_f, p ) }}
+      w = uint256( keccak256( abi.encode( seed, y ) ) );
+      work_result[{{ i }}] = w;
+      result ^= w;
+{% endfor %}
+
+      work_result[{{ (q|length) }}] = result;
+      return work_result;
+   }
+}

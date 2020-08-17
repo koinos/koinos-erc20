@@ -1,0 +1,29 @@
+{
+  "name": "kns",
+  "version": "0.0.1",
+  "description": "Koinos ERC20 token",
+  "main": "index.js",
+  "dependencies": {
+    "@openzeppelin/contracts-ethereum-package": "^3.0.0"
+  },
+  "devDependencies": {
+    "@openzeppelin/cli": "^2.8.2",
+    "@openzeppelin/test-environment": "^0.1.4",
+    "@openzeppelin/test-helpers": "^0.5.6",
+    "ganache-cli": "^6.10.1",
+    "mocha": "^8.1.1"
+  },
+  "scripts": {
+    "test": "mocha --exit --recursive test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koinos/kns.git"
+  },
+  "author": "",
+  "license": "Proprietary all rights reserved",
+  "bugs": {
+    "url": "https://github.com/koinos/kns/issues"
+  },
+  "homepage": "https://github.com/koinos/kns#readme"
+}
