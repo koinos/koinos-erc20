@@ -34,7 +34,7 @@ contract KnsTokenMining
 
    bool public is_testing;
 
-   event Mine( address miner, address recipient, uint256 split_percent, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256 token_mined );
+   event Mine( address miner, address recipient, uint256 split_percent, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256 miner_tokens, uint256 recipient_tokens );
 
    function initialize(address tok, uint256 start_t, bool testing ) public initializer
    {
@@ -104,6 +104,7 @@ contract KnsTokenMining
       require( nonce >= recent_eth_block_hash, "Nonce too small" );
       require( (recent_eth_block_hash + (1 << 128)) > nonce, "Nonce too large" );
       require( uint256( blockhash( recent_eth_block_number ) ) == recent_eth_block_hash, "Block hash mismatch" );
+      require( split_percent <= 10000, "Split percent too large." );
 
       require( user_pow_height[miner]+1 == pow_height, "pow_height mismatch" );
       uint256 h = get_secured_struct_hash( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
@@ -177,6 +178,9 @@ contract KnsTokenMining
       return (hc_decay, token_virtual_mint);
    }
 
+   /**
+    * Calculate value in tokens the given hash credits are worth
+    **/
    function get_hash_credits_conversion( uint256 hc )
       public view
       returns (uint256)
@@ -202,15 +206,18 @@ contract KnsTokenMining
       return x0-x1;
    }
 
+   /**
+    * Executes the trade of hash credits to tokens
+    * Returns number of minted tokens
+    **/
    function convert_hash_credits(
-      address miner,
       uint256 hc ) internal
       returns (uint256)
    {
       uint256 tokens_minted = get_hash_credits_conversion( hc );
       hc_reserve += hc;
       token_reserve -= tokens_minted;
-      token.mint( miner, tokens_minted );
+      
       return tokens_minted;
    }
 
@@ -241,8 +248,15 @@ contract KnsTokenMining
       uint256 token_virtual_mint;
       (hc_decay, token_virtual_mint) = process_background_activity( current_time );
       uint256 token_mined;
-      token_mined = convert_hash_credits( miner, hc_submit );
-      emit Mine( miner, recipient, split_percent, hc_submit, hc_decay, token_virtual_mint, token_mined );
+      token_mined = convert_hash_credits( hc_submit );
+
+      // Mint the tokens
+      uint256 recipient_tokens = (token_mined * split_percent) / 10000;
+
+      token.mint( miner, token_mined - recipient_tokens );
+      token.mint( recipient, recipient_tokens );
+
+      emit Mine( miner, recipient, split_percent, hc_submit, hc_decay, token_virtual_mint, token_mined - recipient_tokens, recipient_tokens );
    }
 
    function mine(
@@ -257,8 +271,6 @@ contract KnsTokenMining
    {
       mine_impl( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, now );
    }
-
-
 
    function test_process_background_activity( uint256 current_time )
       public
