@@ -34,7 +34,7 @@ contract KnsTokenMining
 
    bool public is_testing;
 
-   event Mine( address miner, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256 token_mined );
+   event Mine( address miner, address recipient, uint256 split_percent, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256 token_mined );
 
    function initialize(address tok, uint256 start_t, bool testing ) public initializer
    {
@@ -71,13 +71,15 @@ contract KnsTokenMining
     */
    function get_secured_struct_hash(
       address miner,
+      address recipient,
+      uint256 split_percent,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
       uint256 pow_height
       ) public pure returns (uint256)
    {
-      return uint256( keccak256( abi.encode( miner, recent_eth_block_number, recent_eth_block_hash, target, pow_height ) ) );
+      return uint256( keccak256( abi.encode( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height ) ) );
    }
 
    /**
@@ -87,6 +89,8 @@ contract KnsTokenMining
     */
    function check_pow(
       address miner,
+      address recipient,
+      uint256 split_percent,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
@@ -102,7 +106,7 @@ contract KnsTokenMining
       require( uint256( blockhash( recent_eth_block_number ) ) == recent_eth_block_hash, "Block hash mismatch" );
 
       require( user_pow_height[miner]+1 == pow_height, "pow_height mismatch" );
-      uint256 h = get_secured_struct_hash( miner, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
+      uint256 h = get_secured_struct_hash( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
       uint256[11] memory w = work( recent_eth_block_hash, h, nonce );
       require( w[10] < target, "Work missed target" );     // always fails if target == 0
    }
@@ -212,6 +216,8 @@ contract KnsTokenMining
 
    function mine_impl(
       address miner,
+      address recipient,
+      uint256 split_percent,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
@@ -221,6 +227,8 @@ contract KnsTokenMining
    {
       check_pow(
          miner,
+	 recipient,
+	 split_percent,
          recent_eth_block_number,
          recent_eth_block_hash,
          target,
@@ -234,19 +242,23 @@ contract KnsTokenMining
       (hc_decay, token_virtual_mint) = process_background_activity( current_time );
       uint256 token_mined;
       token_mined = convert_hash_credits( miner, hc_submit );
-      emit Mine( miner, hc_submit, hc_decay, token_virtual_mint, token_mined );
+      emit Mine( miner, recipient, split_percent, hc_submit, hc_decay, token_virtual_mint, token_mined );
    }
 
    function mine(
       address miner,
+      address recipient,
+      uint256 split_percent,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
       uint256 pow_height,
       uint256 nonce ) public
    {
-      mine_impl( miner, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, now );
+      mine_impl( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, now );
    }
+
+
 
    function test_process_background_activity( uint256 current_time )
       public
@@ -257,6 +269,8 @@ contract KnsTokenMining
 
    function test_mine(
       address miner,
+      address recipient,
+      uint256 split_percent,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
@@ -265,6 +279,6 @@ contract KnsTokenMining
       uint256 current_time ) public
    {
       require( is_testing, "Cannot call test method" );
-      mine_impl( miner, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, current_time );
+      mine_impl( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, current_time );
    }
 }

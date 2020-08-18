@@ -74,9 +74,17 @@ describe( "Some tests", function()
       let w_obj = new JSWork( bn_seed, bn_h, bn_nonce );
       let w_js = w_obj.compute_work();
 
+       console.log( "Seed", (new BN(seed)).toString( 16 ) );
+       console.log( "Secured Hash", (new BN(secured_struct_hash)).toString( 16 ) );
+       console.log( "Nonce", (new BN(nonce)).toString( 16 ) );
+       
       assert( w_contract.length == w_js.length );
       for( let i=0; i<w_contract.length; i++ )
-         assert( (new BN(w_contract[i])).eq(w_js[i]) );
+      {
+          assert( (new BN(w_contract[i])).eq(w_js[i]) );
+	  console.log( "Work", i, (new BN(w_contract[i])).toString( 16 ) );
+      }
+          
    } );
 
    it( "Check emission curve", async function()
