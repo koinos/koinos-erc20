@@ -246,7 +246,7 @@ contract KnsTokenMining
    {
       check_pow(
          recipients,
-	 split_percents,
+         split_percents,
          recent_eth_block_number,
          recent_eth_block_hash,
          target,
@@ -266,6 +266,9 @@ contract KnsTokenMining
       emit Mine( recipients, split_percents, hc_submit, hc_decay, token_virtual_mint, distribution );
    }
 
+   /**
+    * Executes the distribution, minting the tokens to the recipient addresses
+    **/
    function distribute(address[] memory recipients, uint256[] memory split_percents, uint256 token_mined)
    internal returns ( uint256[] memory )
    {

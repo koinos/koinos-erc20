@@ -82,7 +82,7 @@ describe( "Some tests", function()
       for( let i=0; i<w_contract.length; i++ )
       {
           assert( (new BN(w_contract[i])).eq(w_js[i]) );
-	  console.log( "Work", i, (new BN(w_contract[i])).toString( 16 ) );
+          console.log( "Work", i, (new BN(w_contract[i])).toString( 16 ) );
       }
           
    } );
