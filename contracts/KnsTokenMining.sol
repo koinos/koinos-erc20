@@ -34,7 +34,7 @@ contract KnsTokenMining
 
    bool public is_testing;
 
-   event Mine( address miner, address recipient, uint256 split_percent, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256 miner_tokens, uint256 recipient_tokens );
+   event Mine( address[] recipients, uint256[] split_percents, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256[] tokens_mined );
 
    function initialize(address tok, uint256 start_t, bool testing ) public initializer
    {
@@ -70,16 +70,15 @@ contract KnsTokenMining
     * Basically calls keccak256() on parameters.  Mainly exists for readability purposes.
     */
    function get_secured_struct_hash(
-      address miner,
-      address recipient,
-      uint256 split_percent,
+      address[] memory recipients,
+      uint256[] memory split_percents,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
       uint256 pow_height
       ) public pure returns (uint256)
    {
-      return uint256( keccak256( abi.encode( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height ) ) );
+      return uint256( keccak256( abi.encode( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height ) ) );
    }
 
    /**
@@ -88,9 +87,8 @@ contract KnsTokenMining
     * Throws if the provided fields have any problems.
     */
    function check_pow(
-      address miner,
-      address recipient,
-      uint256 split_percent,
+      address[] memory recipients,
+      uint256[] memory split_percents,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
@@ -104,12 +102,27 @@ contract KnsTokenMining
       require( nonce >= recent_eth_block_hash, "Nonce too small" );
       require( (recent_eth_block_hash + (1 << 128)) > nonce, "Nonce too large" );
       require( uint256( blockhash( recent_eth_block_number ) ) == recent_eth_block_hash, "Block hash mismatch" );
-      require( split_percent <= 10000, "Split percent too large." );
 
-      require( user_pow_height[miner]+1 == pow_height, "pow_height mismatch" );
-      uint256 h = get_secured_struct_hash( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
+      require( recipients.length <= 5, "Number of recipients cannot exceed 5" );
+      require( recipients.length == split_percents.length, "Recipient and split percent array size mismatch" );
+      array_check( split_percents );
+
+      require( user_pow_height[recipients[0]]+1 == pow_height, "pow_height mismatch" );
+      uint256 h = get_secured_struct_hash( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
       uint256[11] memory w = work( recent_eth_block_hash, h, nonce );
       require( w[10] < target, "Work missed target" );     // always fails if target == 0
+   }
+
+   function array_check( uint256[] memory arr )
+   internal pure
+   {
+      uint256 sum = 0;
+      for (uint i = 0; i < arr.length; i++)
+      {
+         require( arr[i] <= 10000, "Percent array element cannot exceed 10000" );
+         sum += arr[i];
+      }
+      require( sum == 10000, "Split percentages do not add up to 10000" );
    }
 
    function get_emission_curve( uint256 t )
@@ -222,9 +235,8 @@ contract KnsTokenMining
    }
 
    function mine_impl(
-      address miner,
-      address recipient,
-      uint256 split_percent,
+      address[] memory recipients,
+      uint256[] memory split_percents,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
@@ -233,9 +245,8 @@ contract KnsTokenMining
       uint256 current_time ) internal
    {
       check_pow(
-         miner,
-	 recipient,
-	 split_percent,
+         recipients,
+	 split_percents,
          recent_eth_block_number,
          recent_eth_block_hash,
          target,
@@ -250,26 +261,38 @@ contract KnsTokenMining
       uint256 token_mined;
       token_mined = convert_hash_credits( hc_submit );
 
-      // Mint the tokens
-      uint256 recipient_tokens = (token_mined * split_percent) / 10000;
+      uint256[] memory distribution = distribute( recipients, split_percents, token_mined );
 
-      token.mint( miner, token_mined - recipient_tokens );
-      token.mint( recipient, recipient_tokens );
+      emit Mine( recipients, split_percents, hc_submit, hc_decay, token_virtual_mint, distribution );
+   }
 
-      emit Mine( miner, recipient, split_percent, hc_submit, hc_decay, token_virtual_mint, token_mined - recipient_tokens, recipient_tokens );
+   function distribute(address[] memory recipients, uint256[] memory split_percents, uint256 token_mined)
+   internal returns ( uint256[] memory )
+   {
+      uint256 remaining = token_mined;
+      uint256[] memory distribution = new uint256[]( recipients.length );
+      for (uint i = distribution.length-1; i > 0; i--)
+      {
+         distribution[i] = (token_mined * split_percents[i]) / 10000;
+	 token.mint( recipients[i], distribution[i] );
+	 remaining -= distribution[i];
+      }
+      distribution[0] = remaining;
+      token.mint( recipients[0], remaining );
+      
+      return distribution;
    }
 
    function mine(
-      address miner,
-      address recipient,
-      uint256 split_percent,
+      address[] memory recipients,
+      uint256[] memory split_percents,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
       uint256 pow_height,
       uint256 nonce ) public
    {
-      mine_impl( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, now );
+      mine_impl( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, now );
    }
 
    function test_process_background_activity( uint256 current_time )
@@ -280,9 +303,8 @@ contract KnsTokenMining
    }
 
    function test_mine(
-      address miner,
-      address recipient,
-      uint256 split_percent,
+      address[] memory recipients,
+      uint256[] memory split_percents,
       uint256 recent_eth_block_number,
       uint256 recent_eth_block_hash,
       uint256 target,
@@ -291,6 +313,6 @@ contract KnsTokenMining
       uint256 current_time ) public
    {
       require( is_testing, "Cannot call test method" );
-      mine_impl( miner, recipient, split_percent, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, current_time );
+      mine_impl( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, current_time );
    }
 }
