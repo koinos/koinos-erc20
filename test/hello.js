@@ -15,13 +15,13 @@ const KnsTokenMining = Contracts.getFromLocal("KnsTokenMining");
 
 // const BN = require("bn.js");
 
-const { JSWork } = require("./work.js");
+const { JSWork, hash_uint256_seq } = require("./work.js");
 
 const START_TIME = 4102462800;
 
 describe( "Some tests", function()
 {
-   const [owner, alice] = accounts;
+   const [owner, alice, bob] = accounts;
 
    beforeEach(async function () {
       this.project = await TestHelper({from: owner});
@@ -135,25 +135,107 @@ describe( "Some tests", function()
 
    it( "Mine a nonce", async function()
    {
-      let setup_mining() = async function(mining_info)
+      let mining = this.mining_proxy;
+      let setup_mining = async function(mining_info)
       {
          let block = await web3.eth.getBlock("latest");
          mining_info.recent_block_number = block.number;
          mining_info.recent_block_hash = block.hash;
-         mining_info.pow_height = await web3.eth.get_pow_height( mining_info.recipients[0] );
-         mining_info.target = new BN("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+         mining_info.target = (new BN("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)).div(new BN(10));
+         mining_info.pow_height = (await mining.methods.get_pow_height( mining_info.recipients[0] ).call())+1;
+         mining_info.from = mining_info.recipients[0];
          return mining_info;
       };
 
-      let mining_info = setup_mining( {"recipients" : [alice, bob], "split_percents" = [7500, 2500]} );
+      let hash_secured_struct = function(mining_info)
+      {
+         let s = [];
+         // Dynamic parameter placeholders
+         s.push( new BN(0) );
+         s.push( new BN(0) );
+         // Static parameters
+         s.push( new BN(mining_info.recent_block_number) );
+         s.push( new BN(mining_info.recent_block_hash.substr(2), 16) );
+         s.push( mining_info.target );
+         s.push( new BN(mining_info.pow_height) );
+
+         // Initialize dynamic parameters
+         s[0] = new BN(0x20 * s.length);
+         s.push( new BN(mining_info.recipients.length) );
+         for( let i=0; i<mining_info.recipients.length; i++ )
+         {
+            s.push( new BN(mining_info.recipients[i].substr(2), 16) );
+         }
+
+         s[1] = new BN(0x20 * s.length);
+         s.push( new BN(mining_info.split_percents.length) );
+         for( let i=0; i<mining_info.split_percents.length; i++ )
+         {
+            s.push( new BN(mining_info.split_percents[i]) );
+         }
+
+         console.log(s);
+         return hash_uint256_seq(s);
+      };
+
+      let mining_info = await setup_mining( {"recipients" : [alice, bob], "split_percents" : [7500, 2500]} );
+
+      let secured_struct_hash = hash_secured_struct( mining_info );
+      let secured_struct_hash_2 = new BN(await mining.methods.get_secured_struct_hash(
+          mining_info.recipients, mining_info.split_percents, mining_info.recent_block_number, mining_info.recent_block_hash,
+          "0x"+mining_info.target.toString(16), mining_info.pow_height ).call());
+
+      assert( secured_struct_hash.eq(secured_struct_hash_2) );
 
       console.log( "mining_info:", mining_info );
 
-      /*
-      for( let i=0; i<n; i++ )
+      let nonce = new BN(mining_info.recent_block_hash.substr(2), 16);
+      let seed = new BN(mining_info.recent_block_hash.substr(2), 16);
+      let h = new BN(secured_struct_hash);
+
+      let mine = async function( mining_info, nonce, when )
       {
-         
+         return await mining.methods.test_mine(
+          mining_info.recipients, mining_info.split_percents, mining_info.recent_block_number, mining_info.recent_block_hash,
+          "0x"+mining_info.target.toString(16), mining_info.pow_height,
+          "0x"+nonce.toString(16),
+          when
+         ).send( {from: mining_info.from} );
+      };
+
+      let one = new BN(1);
+      let tested_success = false;
+      let tested_failure = false;
+      let when = (await mining.methods.last_mint_time().call()) + 60*60*24;
+      console.log("when:", when);
+      let i = 0;
+      while( !(tested_success && tested_failure) )
+      {
+         console.log( "rbh", mining_info.recent_block_hash );
+         console.log( "non", nonce );
+         let w_obj = new JSWork(seed, h, nonce);
+         let work = w_obj.compute_work();
+         if( work[10].lt( mining_info.target ) )
+         {
+            // await mine( mining_info, nonce, when );
+            console.log( "          bga:", await mining.methods.get_background_activity(when).call() );
+            console.log( "token_reserve:", await mining.methods.token_reserve().call() );
+            // await mining.methods.test_process_background_activity( when ).send( {from: owner} );
+            console.log( "          bga:", await mining.methods.get_background_activity(when).call() );
+            console.log( "token_reserve:", await mining.methods.token_reserve().call() );
+            console.log( "   hc_reserve:", await mining.methods.hc_reserve().call() );
+            console.log( "hc conversion:", await mining.methods.get_hash_credits_conversion( 1000 ).call() );
+            await mine( mining_info, nonce, when );
+            tested_success = true;
+         }
+         else
+         {
+            //await expectRevert( mine( mining_info, nonce, when ), "Work missed target" );
+            tested_failure = true;
+         }
+         nonce = nonce.add(one);
+         i++;
       }
-      */
    } );
+
 } );

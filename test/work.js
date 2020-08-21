@@ -30,7 +30,6 @@ class JSWork
 
    w(i)
    {
-      console.log( "i", i );
       return hash_uint256_seq( [this.seed, i] );
    }
 
@@ -83,4 +82,5 @@ class JSWork
 
 module.exports = {
    JSWork : JSWork,
+   hash_uint256_seq : hash_uint256_seq,
 }
