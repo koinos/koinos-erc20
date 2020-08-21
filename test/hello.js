@@ -74,17 +74,17 @@ describe( "Some tests", function()
       let w_obj = new JSWork( bn_seed, bn_h, bn_nonce );
       let w_js = w_obj.compute_work();
 
-       console.log( "Seed", (new BN(seed)).toString( 16 ) );
-       console.log( "Secured Hash", (new BN(secured_struct_hash)).toString( 16 ) );
-       console.log( "Nonce", (new BN(nonce)).toString( 16 ) );
-       
+      console.log( "Seed", (new BN(seed)).toString( 16 ) );
+      console.log( "Secured Hash", (new BN(secured_struct_hash)).toString( 16 ) );
+      console.log( "Nonce", (new BN(nonce)).toString( 16 ) );
+
       assert( w_contract.length == w_js.length );
       for( let i=0; i<w_contract.length; i++ )
       {
           assert( (new BN(w_contract[i])).eq(w_js[i]) );
           console.log( "Work", i, (new BN(w_contract[i])).toString( 16 ) );
       }
-          
+
    } );
 
    it( "Check emission curve", async function()
@@ -131,5 +131,29 @@ describe( "Some tests", function()
       let ba = await mining.methods.get_background_activity( t ).call();
       console.log(ba);
       // expectEvent( txr, "HCDecay" );
+   } );
+
+   it( "Mine a nonce", async function()
+   {
+      let setup_mining() = async function(mining_info)
+      {
+         let block = await web3.eth.getBlock("latest");
+         mining_info.recent_block_number = block.number;
+         mining_info.recent_block_hash = block.hash;
+         mining_info.pow_height = await web3.eth.get_pow_height( mining_info.recipients[0] );
+         mining_info.target = new BN("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+         return mining_info;
+      };
+
+      let mining_info = setup_mining( {"recipients" : [alice, bob], "split_percents" = [7500, 2500]} );
+
+      console.log( "mining_info:", mining_info );
+
+      /*
+      for( let i=0; i<n; i++ )
+      {
+         
+      }
+      */
    } );
 } );
