@@ -1,17 +1,7 @@
 // JavaScript implementation of the work algorithm
 
 const BN = require("bn.js");
-const { keccak256 } = require("ethereumjs-util");
-
-function hash_uint256_seq(s)
-{
-   let buffers = [];
-   for( let i=0; i<s.length; i++ )
-   {
-      buffers.push( s[i].toBuffer("be", 32) );
-   }
-   return new BN( keccak256( Buffer.concat( buffers ) ) );
-}
+const { hash_uint256_seq } = require("./helpers.js");
 
 class JSWork
 {
@@ -30,7 +20,6 @@ class JSWork
 
    w(i)
    {
-      console.log( "i", i );
       return hash_uint256_seq( [this.seed, i] );
    }
 
@@ -82,5 +71,5 @@ class JSWork
 }
 
 module.exports = {
-   JSWork : JSWork,
+   JSWork : JSWork
 }
