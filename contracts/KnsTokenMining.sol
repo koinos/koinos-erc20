@@ -230,7 +230,7 @@ contract KnsTokenMining
       uint256 tokens_minted = get_hash_credits_conversion( hc );
       hc_reserve += hc;
       token_reserve -= tokens_minted;
-      
+
       return tokens_minted;
    }
 
@@ -267,6 +267,16 @@ contract KnsTokenMining
    }
 
    /**
+    * Get the total number of proof-of-work submitted by a user.
+    */
+   function get_pow_height( address miner )
+      public view
+      returns (uint256)
+   {
+      return user_pow_height[miner];
+   }
+
+   /**
     * Executes the distribution, minting the tokens to the recipient addresses
     **/
    function distribute(address[] memory recipients, uint256[] memory split_percents, uint256 token_mined)
@@ -282,7 +292,7 @@ contract KnsTokenMining
       }
       distribution[0] = remaining;
       token.mint( recipients[0], remaining );
-      
+
       return distribution;
    }
 
