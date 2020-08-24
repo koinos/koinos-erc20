@@ -239,7 +239,20 @@ describe( "Some tests", function()
          {
             let mined = await mine( mining_info, nonce, when );
             assert( await mining.methods.last_mint_time().call() == when );
-            console.log( "mined:", mined );
+            //console.log( "mined:", mined );
+            //console.log("mined return values:", mined.events.Mine.returnValues)
+
+            // Test split
+            var split = mined.events.Mine.returnValues.split_percents
+            var tokens_mined = mined.events.Mine.returnValues.tokens_mined;
+            var sum = tokens_mined.reduce(function(a,b){ return new BN(a).add(new BN(b)) }, 0);
+            for (var j = 0; j < tokens_mined.length; j++)
+            {
+                var observed_percent = new BN(tokens_mined[j]).mul(new BN(10000)).div(sum);
+                var difference = observed_percent.sub(new BN(split[j])).abs();
+                assert( difference <= 1 );
+            }
+
             tested_success = true;
             let txr = await web3.eth.getTransactionReceipt(mined.transactionHash);
             //console.log( "ERC20 ABI:", IERC20.options.jsonInterface );
