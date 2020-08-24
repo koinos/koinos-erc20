@@ -207,7 +207,6 @@ describe( "Some tests", function()
       let tested_success = false;
       let tested_failure = false;
       let when = (await mining.methods.last_mint_time().call()) + 60*60*24;
-      console.log("when:", when);
       let i = 0;
       while( !(tested_success && tested_failure) )
       {
@@ -217,20 +216,14 @@ describe( "Some tests", function()
          let work = w_obj.compute_work();
          if( work[10].lt( mining_info.target ) )
          {
-            // await mine( mining_info, nonce, when );
-            console.log( "          bga:", await mining.methods.get_background_activity(when).call() );
-            console.log( "token_reserve:", await mining.methods.token_reserve().call() );
-            // await mining.methods.test_process_background_activity( when ).send( {from: owner} );
-            console.log( "          bga:", await mining.methods.get_background_activity(when).call() );
-            console.log( "token_reserve:", await mining.methods.token_reserve().call() );
-            console.log( "   hc_reserve:", await mining.methods.hc_reserve().call() );
-            console.log( "hc conversion:", await mining.methods.get_hash_credits_conversion( 1000 ).call() );
-            await mine( mining_info, nonce, when );
+            let mined = await mine( mining_info, nonce, when );
+            assert( await mining.methods.last_mint_time().call() == when );
+            console.log( "mined:", mined );
             tested_success = true;
          }
          else
          {
-            //await expectRevert( mine( mining_info, nonce, when ), "Work missed target" );
+            await expectRevert( mine( mining_info, nonce, when ), "Work missed target" );
             tested_failure = true;
          }
          nonce = nonce.add(one);
