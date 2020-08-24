@@ -8,8 +8,9 @@ ZWeb3.initialize( web3.currentProvider );
 const { keccak256 } = require("ethereumjs-util");
 
 const { TestHelper } = require("@openzeppelin/cli");
-const { BN, expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const { BN, expectEvent, expectRevert, decodeLogs } = require('@openzeppelin/test-helpers');
 
+const IERC20 = Contracts.getFromLocal("IERC20");
 const KnsToken = Contracts.getFromLocal("KnsToken");
 const KnsTokenMining = Contracts.getFromLocal("KnsTokenMining");
 
@@ -18,6 +19,25 @@ const KnsTokenMining = Contracts.getFromLocal("KnsTokenMining");
 const { JSWork, hash_uint256_seq } = require("./work.js");
 
 const START_TIME = 4102462800;
+
+parse_transfer_log = function(log_item)
+{
+   let transfer_abi_inputs = [
+     { indexed: true,
+       internalType: "address",
+       name: "from",
+       type: "address" },
+     { indexed: true,
+       internalType: "address",
+       name: "to",
+       type: "address" },
+     { indexed: false,
+       internalType: "uint256",
+       name: "value",
+       type: "uint256" } ];
+   return web3.eth.abi.decodeLog(transfer_abi_inputs, log_item.data, log_item.topics.slice(1));
+};
+
 
 describe( "Some tests", function()
 {
@@ -208,6 +228,7 @@ describe( "Some tests", function()
       let tested_failure = false;
       let when = (await mining.methods.last_mint_time().call()) + 60*60*24;
       let i = 0;
+      let zaddr = "0x0000000000000000000000000000000000000000";
       while( !(tested_success && tested_failure) )
       {
          console.log( "rbh", mining_info.recent_block_hash );
@@ -220,6 +241,12 @@ describe( "Some tests", function()
             assert( await mining.methods.last_mint_time().call() == when );
             console.log( "mined:", mined );
             tested_success = true;
+            let txr = await web3.eth.getTransactionReceipt(mined.transactionHash);
+            //console.log( "ERC20 ABI:", IERC20.options.jsonInterface );
+            console.log( "first  transfer:", parse_transfer_log( txr.logs[0] ) );
+            console.log( "second transfer:", parse_transfer_log( txr.logs[1] ) );
+
+            await expectEvent.inTransaction(mined.transactionHash, IERC20, "Transfer", { from: zaddr, to: alice });
          }
          else
          {
