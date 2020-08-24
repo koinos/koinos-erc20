@@ -81,19 +81,6 @@ contract KnsTokenMining
       return uint256( keccak256( abi.encode( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height ) ) );
    }
 
-   function secured_struct_hash_bytes(
-      address[] memory recipients,
-      uint256[] memory split_percents,
-      uint256 recent_eth_block_number,
-      uint256 recent_eth_block_hash,
-      uint256 target,
-      uint256 pow_height
-      ) public pure returns (bytes memory)
-   {
-      return abi.encode( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
-   }
-
-
    /**
     * Check proof of work for validity.
     *
@@ -177,19 +164,13 @@ contract KnsTokenMining
       token_virtual_mint = 0;
 
       if( current_time <= last_mint_time )
-      {
-         revert( "current_time <= last_mint_time" );
          return (hc_decay, token_virtual_mint);
-      }
       uint256 dt = current_time - last_mint_time;
 
       uint256 f_prev = get_emission_curve( last_mint_time );
       uint256 f_now = get_emission_curve( current_time );
       if( f_now <= f_prev )
-      {
-         revert( "f_now <= f_prev" );
          return (hc_decay, token_virtual_mint);
-      }
 
       uint256 mul = get_hc_reserve_multiplier( dt );
       uint256 new_hc_reserve = (hc_reserve * mul) >> 32;
@@ -204,17 +185,9 @@ contract KnsTokenMining
       returns (uint256 hc_decay, uint256 token_virtual_mint)
    {
       (hc_decay, token_virtual_mint) = get_background_activity( current_time );
-      if( token_virtual_mint == 0 )
-      {
-         revert( "token_virtual_mint == 0" );
-      }
       hc_reserve -= hc_decay;
       token_reserve += token_virtual_mint;
       last_mint_time = current_time;
-      if( token_reserve == 0 )
-      {
-         revert( "process_background_activity empty token reserve" );
-      }
       return (hc_decay, token_virtual_mint);
    }
 
@@ -225,7 +198,6 @@ contract KnsTokenMining
       public view
       returns (uint256)
    {
-      require( token_reserve > 0, "get_hash_credits_conversion empty token reserve" );
       require( hc > 1, "HC underflow" );
       require( hc < (1 << 128), "HC overflow" );
 
@@ -255,12 +227,10 @@ contract KnsTokenMining
       uint256 hc ) internal
       returns (uint256)
    {
-      require( token_reserve > 0, "convert_hash_credits empty token reserve" );
-
       uint256 tokens_minted = get_hash_credits_conversion( hc );
       hc_reserve += hc;
       token_reserve -= tokens_minted;
-
+      
       return tokens_minted;
    }
 
@@ -288,20 +258,12 @@ contract KnsTokenMining
       uint256 hc_decay;
       uint256 token_virtual_mint;
       (hc_decay, token_virtual_mint) = process_background_activity( current_time );
-      require( token_reserve > 0, "mine_impl empty token reserve" );
       uint256 token_mined;
       token_mined = convert_hash_credits( hc_submit );
 
       uint256[] memory distribution = distribute( recipients, split_percents, token_mined );
 
       emit Mine( recipients, split_percents, hc_submit, hc_decay, token_virtual_mint, distribution );
-   }
-
-   function get_pow_height( address miner )
-      public view
-      returns (uint256)
-   {
-      return user_pow_height[miner];
    }
 
    /**
@@ -320,7 +282,7 @@ contract KnsTokenMining
       }
       distribution[0] = remaining;
       token.mint( recipients[0], remaining );
-
+      
       return distribution;
    }
 
