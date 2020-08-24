@@ -30,6 +30,7 @@ class JSWork
 
    w(i)
    {
+      console.log( "i", i );
       return hash_uint256_seq( [this.seed, i] );
    }
 
