@@ -200,7 +200,7 @@ describe( "Some tests", function()
           "0x"+mining_info.target.toString(16), mining_info.pow_height,
           "0x"+nonce.toString(16),
           when
-         ).send( {from: mining_info.from} );
+         ).send( {from: mining_info.from, gas: 5000000} );
       };
 
       let one = new BN(1);
