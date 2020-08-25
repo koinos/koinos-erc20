@@ -11,9 +11,6 @@
  **************************************************************************************/
 pragma solidity ^0.6.0;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol";
-
 contract KnsTokenWork
 {
    /**

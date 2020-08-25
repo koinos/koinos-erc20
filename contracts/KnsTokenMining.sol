@@ -1,15 +1,13 @@
 pragma solidity ^0.6.0;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "./IMintableERC20.sol";
 import "./KnsTokenWork.sol";
 import "./KnsToken.sol";
 
 contract KnsTokenMining
-   is Initializable,
-      AccessControlUpgradeSafe,
+   is AccessControl,
       KnsTokenWork
 {
    IMintableERC20 public token;
@@ -36,22 +34,8 @@ contract KnsTokenMining
 
    event Mine( address[] recipients, uint256[] split_percents, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256[] tokens_mined );
 
-   function initialize(address tok, uint256 start_t, bool testing ) public initializer
-   {
-       __KnsTokenMining_init( tok, start_t, testing );
-   }
-
-   function __KnsTokenMining_init( address tok, uint256 start_t, bool testing ) internal initializer
-   {
-      // Initializable
-      // AccessControl is Initializable, ContextUpgradeSafe
-      // ContextUpgradeSafe is Initializable
-      __Context_init_unchained();
-      __AccessControl_init_unchained();
-      __KnsTokenMining_init_unchained( tok, start_t, testing );
-   }
-
-   function __KnsTokenMining_init_unchained( address tok, uint256 start_t, bool testing ) internal initializer
+   constructor( address tok, uint256 start_t, bool testing )
+      public
    {
       token = IMintableERC20(tok);
       _setupRole( DEFAULT_ADMIN_ROLE, _msgSender() );
