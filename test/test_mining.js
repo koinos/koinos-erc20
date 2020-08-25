@@ -21,7 +21,7 @@ const { hash_secured_struct, setup_mining, parse_transfer_log } = require("./hel
 
 const START_TIME = 4102462800;
 
-describe( "Some tests", function()
+describe( "Mining tests", function()
 {
    const [owner, alice, bob] = accounts;
 
