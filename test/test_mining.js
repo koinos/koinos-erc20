@@ -25,7 +25,8 @@ describe( "Mining tests", function()
 
    beforeEach(async function () {
       this.project = await TestHelper({from: owner});
-      this.token = await KnsToken.new("Test Koinos",
+      this.token = await KnsToken.new(
+             "Test Koinos",
              "TEST.KNS",
              "0x0000000000000000000000000000000000000000",
              {from: owner});
