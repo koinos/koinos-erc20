@@ -146,16 +146,16 @@ describe( "Mining tests", function()
       let one = new BN(1);
       let tested_success = false;
       let tested_failure = false;
+      let mining_gas = [];
       let when = (new BN(await mining.last_mint_time())).add(new BN(60*60*24));
       let i = 0;
       let zaddr = "0x0000000000000000000000000000000000000000";
       let ti = (await mining.last_mint_time());
       let tf = (new BN(ti)).add(new BN(await mining.TOTAL_EMISSION_TIME())).toString();
 
-      while( (i < 30) || !(tested_success && tested_failure) )
+      while( (i < 30) || !(tested_success && tested_failure) && (mining_gas.length < 3) )
       {
          let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]} );
-         console.log(mining_info);
 
          let secured_struct_hash = hash_secured_struct( mining_info );
          let secured_struct_hash_2 = new BN(await mining.get_secured_struct_hash(
@@ -174,6 +174,7 @@ describe( "Mining tests", function()
          {
             let mined = await mine( mining_info, nonce, when.toString() );
             assert( when.eq( new BN(await mining.last_mint_time()) ) );
+            mining_gas.push( mined.receipt.gasUsed );
 
             let mine_event = mined.receipt.logs[0].args;
 
@@ -211,5 +212,6 @@ describe( "Mining tests", function()
          nonce = nonce.add(one);
          i++;
       }
+      console.log( "Mining gas used:", mining_gas );
    } );
 } );
