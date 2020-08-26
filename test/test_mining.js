@@ -18,6 +18,7 @@ const { JSWork } = require("./work.js");
 const { hash_secured_struct, setup_mining, parse_transfer_log } = require("./helpers.js");
 
 const START_TIME = 4102462800;
+const START_HC_RESERVE = 1000;
 
 describe( "Mining tests", function()
 {
@@ -33,6 +34,7 @@ describe( "Mining tests", function()
       this.mining = await KnsTokenMining.new(
              this.token.address,
              START_TIME,
+             START_HC_RESERVE,
              true,
              {from: owner});
       this.MINTER_ROLE = await this.token.MINTER_ROLE();
@@ -130,19 +132,6 @@ describe( "Mining tests", function()
       this.timeout(60000);
       let mining = this.mining;
 
-      let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]} );
-
-      let secured_struct_hash = hash_secured_struct( mining_info );
-      let secured_struct_hash_2 = new BN(await mining.get_secured_struct_hash(
-          mining_info.recipients, mining_info.split_percents, mining_info.recent_block_number, mining_info.recent_block_hash,
-          "0x"+mining_info.target.toString(16), mining_info.pow_height ));
-
-      assert( secured_struct_hash.eq(secured_struct_hash_2) );
-
-      let nonce = new BN(mining_info.recent_block_hash.substr(2), 16);
-      let seed = new BN(mining_info.recent_block_hash.substr(2), 16);
-      let h = new BN(secured_struct_hash);
-
       let mine = async function( mining_info, nonce, when )
       {
          return await mining.test_mine(
@@ -163,8 +152,22 @@ describe( "Mining tests", function()
       let ti = (await mining.last_mint_time());
       let tf = (new BN(ti)).add(new BN(await mining.TOTAL_EMISSION_TIME())).toString();
 
-      while( !(tested_success && tested_failure) )
+      while( (i < 30) || !(tested_success && tested_failure) )
       {
+         let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]} );
+         console.log(mining_info);
+
+         let secured_struct_hash = hash_secured_struct( mining_info );
+         let secured_struct_hash_2 = new BN(await mining.get_secured_struct_hash(
+             mining_info.recipients, mining_info.split_percents, mining_info.recent_block_number, mining_info.recent_block_hash,
+             "0x"+mining_info.target.toString(16), mining_info.pow_height ));
+
+         assert( secured_struct_hash.eq(secured_struct_hash_2) );
+
+         let seed = new BN(mining_info.recent_block_hash.substr(2), 16);
+         let h = new BN(secured_struct_hash);
+         let nonce = new BN(mining_info.recent_block_hash.substr(2), 16);
+
          let w_obj = new JSWork(seed, h, nonce);
          let work = w_obj.compute_work();
          if( work[10].lt( mining_info.target ) )
@@ -188,6 +191,8 @@ describe( "Mining tests", function()
                 var difference = observed_percent.sub(new BN(split[j])).abs();
                 assert( difference <= 1 );
             }
+
+            await expectRevert( mine( mining_info, nonce, when.toString() ), "pow_height mismatch" );
 
             tested_success = true;
 

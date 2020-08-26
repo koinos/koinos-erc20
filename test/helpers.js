@@ -36,7 +36,7 @@ async function setup_mining(web3, mining, mining_info)
    mining_info.recent_block_number = block.number;
    mining_info.recent_block_hash = block.hash;
    mining_info.target = (new BN("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16)).div(new BN(10));
-   mining_info.pow_height = (await mining.get_pow_height( mining_info.recipients[0] ))+1;
+   mining_info.pow_height = (new BN(await mining.get_pow_height( mining_info.recipients[0] ))).add(new BN(1));
    mining_info.from = mining_info.recipients[0];
    return mining_info;
 }
@@ -51,7 +51,7 @@ function hash_secured_struct(mining_info)
    s.push( new BN(mining_info.recent_block_number) );
    s.push( new BN(mining_info.recent_block_hash.substr(2), 16) );
    s.push( mining_info.target );
-   s.push( new BN(mining_info.pow_height) );
+   s.push( mining_info.pow_height );
 
    // Initialize dynamic parameters
    s[0] = new BN(0x20 * s.length);
