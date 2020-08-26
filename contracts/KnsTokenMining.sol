@@ -246,6 +246,7 @@ contract KnsTokenMining
       token_mined = convert_hash_credits( hc_submit );
 
       uint256[] memory distribution = distribute( recipients, split_percents, token_mined );
+      user_pow_height[recipients[0]] += 1;
 
       emit Mine( recipients, split_percents, hc_submit, hc_decay, token_virtual_mint, distribution );
    }
