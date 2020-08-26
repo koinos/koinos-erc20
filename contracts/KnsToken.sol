@@ -26,7 +26,8 @@ contract KnsToken
    {
       _setupDecimals( KNS_DECIMALS );
       _setupRole( DEFAULT_ADMIN_ROLE, _msgSender() );
-      _setupRole( MINTER_ROLE, minter );
+      if( minter != address(0) )
+         _setupRole( MINTER_ROLE, minter );
    }
 
    /**

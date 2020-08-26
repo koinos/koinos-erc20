@@ -18,6 +18,7 @@ const { JSWork } = require("./work.js");
 const { hash_secured_struct, setup_mining, parse_transfer_log } = require("./helpers.js");
 
 const START_TIME = 4102462800;
+const START_HC_RESERVE = 1000;
 
 describe( "Mining tests", function()
 {
@@ -25,13 +26,15 @@ describe( "Mining tests", function()
 
    beforeEach(async function () {
       this.project = await TestHelper({from: owner});
-      this.token = await KnsToken.new("Test Koinos",
+      this.token = await KnsToken.new(
+             "Test Koinos",
              "TEST.KNS",
              "0x0000000000000000000000000000000000000000",
              {from: owner});
       this.mining = await KnsTokenMining.new(
              this.token.address,
              START_TIME,
+             START_HC_RESERVE,
              true,
              {from: owner});
       this.MINTER_ROLE = await this.token.MINTER_ROLE();
@@ -129,19 +132,6 @@ describe( "Mining tests", function()
       this.timeout(60000);
       let mining = this.mining;
 
-      let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]} );
-
-      let secured_struct_hash = hash_secured_struct( mining_info );
-      let secured_struct_hash_2 = new BN(await mining.get_secured_struct_hash(
-          mining_info.recipients, mining_info.split_percents, mining_info.recent_block_number, mining_info.recent_block_hash,
-          "0x"+mining_info.target.toString(16), mining_info.pow_height ));
-
-      assert( secured_struct_hash.eq(secured_struct_hash_2) );
-
-      let nonce = new BN(mining_info.recent_block_hash.substr(2), 16);
-      let seed = new BN(mining_info.recent_block_hash.substr(2), 16);
-      let h = new BN(secured_struct_hash);
-
       let mine = async function( mining_info, nonce, when )
       {
          return await mining.test_mine(
@@ -156,20 +146,35 @@ describe( "Mining tests", function()
       let one = new BN(1);
       let tested_success = false;
       let tested_failure = false;
+      let mining_gas = [];
       let when = (new BN(await mining.last_mint_time())).add(new BN(60*60*24));
       let i = 0;
       let zaddr = "0x0000000000000000000000000000000000000000";
       let ti = (await mining.last_mint_time());
       let tf = (new BN(ti)).add(new BN(await mining.TOTAL_EMISSION_TIME())).toString();
 
-      while( !(tested_success && tested_failure) )
+      while( (i < 30) || !(tested_success && tested_failure) && (mining_gas.length < 3) )
       {
+         let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]} );
+
+         let secured_struct_hash = hash_secured_struct( mining_info );
+         let secured_struct_hash_2 = new BN(await mining.get_secured_struct_hash(
+             mining_info.recipients, mining_info.split_percents, mining_info.recent_block_number, mining_info.recent_block_hash,
+             "0x"+mining_info.target.toString(16), mining_info.pow_height ));
+
+         assert( secured_struct_hash.eq(secured_struct_hash_2) );
+
+         let seed = new BN(mining_info.recent_block_hash.substr(2), 16);
+         let h = new BN(secured_struct_hash);
+         let nonce = new BN(mining_info.recent_block_hash.substr(2), 16);
+
          let w_obj = new JSWork(seed, h, nonce);
          let work = w_obj.compute_work();
          if( work[10].lt( mining_info.target ) )
          {
             let mined = await mine( mining_info, nonce, when.toString() );
             assert( when.eq( new BN(await mining.last_mint_time()) ) );
+            mining_gas.push( mined.receipt.gasUsed );
 
             let mine_event = mined.receipt.logs[0].args;
 
@@ -188,6 +193,8 @@ describe( "Mining tests", function()
                 assert( difference <= 1 );
             }
 
+            await expectRevert( mine( mining_info, nonce, when.toString() ), "pow_height mismatch" );
+
             tested_success = true;
 
             //console.log( "ERC20 ABI:", IERC20.options.jsonInterface );
@@ -205,5 +212,6 @@ describe( "Mining tests", function()
          nonce = nonce.add(one);
          i++;
       }
+      console.log( "Mining gas used:", mining_gas );
    } );
 } );
