@@ -17,7 +17,6 @@ contract KnsTokenMining
    uint256 public constant MINEABLE_TOKENS = 100 * 1000000 * ONE_KNS;
 
    // TODO this should be a number of hashes corresponding to 1000 CPU-hours
-   uint256 public constant START_HC_RESERVE = 1000;
    uint256 public constant FINAL_PRINT_RATE = 1500;  // basis points
    uint256 public constant TOTAL_EMISSION_TIME = 365 days;
    uint256 public constant EMISSION_COEFF_1 = (MINEABLE_TOKENS * (20000 - FINAL_PRINT_RATE) * TOTAL_EMISSION_TIME);
@@ -34,7 +33,7 @@ contract KnsTokenMining
 
    event Mine( address[] recipients, uint256[] split_percents, uint256 hc_submit, uint256 hc_decay, uint256 token_virtual_mint, uint256[] tokens_mined );
 
-   constructor( address tok, uint256 start_t, bool testing )
+   constructor( address tok, uint256 start_t, uint256 start_hc_reserve, bool testing )
       public
    {
       token = IMintableERC20(tok);
@@ -42,7 +41,7 @@ contract KnsTokenMining
 
       start_time = start_t;
       last_mint_time = start_t;
-      hc_reserve = START_HC_RESERVE;
+      hc_reserve = start_hc_reserve;
       token_reserve = 0;
 
       is_testing = testing;
