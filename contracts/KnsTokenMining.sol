@@ -11,7 +11,7 @@ contract KnsTokenMining
       KnsTokenWork
 {
    IMintableERC20 public token;
-   mapping (address => uint256) private user_pow_height;
+   mapping (uint256 => uint256) private user_pow_height;
 
    uint256 public constant ONE_KNS = 100000000;
    uint256 public constant MINEABLE_TOKENS = 100 * 1000000 * ONE_KNS;
@@ -90,7 +90,7 @@ contract KnsTokenMining
       require( recipients.length == split_percents.length, "Recipient and split percent array size mismatch" );
       array_check( split_percents );
 
-      require( user_pow_height[recipients[0]]+1 == pow_height, "pow_height mismatch" );
+      require( get_pow_height( recipients, split_percents ) + 1 == pow_height, "pow_height mismatch" );
       uint256 h = get_secured_struct_hash( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
       uint256[11] memory w = work( recent_eth_block_hash, h, nonce );
       require( w[10] < target, "Work missed target" );     // always fails if target == 0
@@ -245,7 +245,7 @@ contract KnsTokenMining
       token_mined = convert_hash_credits( hc_submit );
 
       uint256[] memory distribution = distribute( recipients, split_percents, token_mined );
-      user_pow_height[recipients[0]] += 1;
+      user_pow_height[uint256( keccak256( abi.encode( recipients, split_percents ) ) )] += 1;
 
       emit Mine( recipients, split_percents, hc_submit, hc_decay, token_virtual_mint, distribution );
    }
@@ -253,11 +253,14 @@ contract KnsTokenMining
    /**
     * Get the total number of proof-of-work submitted by a user.
     */
-   function get_pow_height( address miner )
+   function get_pow_height(
+      address[] memory recipients,
+      uint256[] memory split_percents
+    )
       public view
       returns (uint256)
    {
-      return user_pow_height[miner];
+      return user_pow_height[uint256( keccak256( abi.encode( recipients, split_percents ) ) )];
    }
 
    /**

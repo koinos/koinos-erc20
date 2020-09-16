@@ -22,7 +22,7 @@ const START_HC_RESERVE = 1000;
 
 describe( "Mining tests", function()
 {
-   const [owner, alice, bob] = accounts;
+   const [owner, alice, bob, charlie] = accounts;
 
    beforeEach(async function () {
       this.project = await TestHelper({from: owner});
@@ -195,6 +195,18 @@ describe( "Mining tests", function()
 
             await expectRevert( mine( mining_info, nonce, when.toString() ), "pow_height mismatch" );
 
+            // Test other economic splits have different PoW Heights
+            mining_info.split_percents[0]++;
+            mining_info.split_percents[1]--;
+            assert( await mining.get_pow_height( mining_info.recipients, mining_info.split_percents ) == 0 );
+
+            mining_info.split_percents[0]--;
+            mining_info.split_percents[1]++;
+            mining_info.recipients[1] = charlie;
+            assert( await mining.get_pow_height( mining_info.recipients, mining_info.split_percents ) == 0 );
+
+            mining_info.recipients[1] = bob;
+
             tested_success = true;
 
             //console.log( "ERC20 ABI:", IERC20.options.jsonInterface );
@@ -212,6 +224,7 @@ describe( "Mining tests", function()
          nonce = nonce.add(one);
          i++;
       }
+
       console.log( "Mining gas used:", mining_gas );
    } );
 } );
