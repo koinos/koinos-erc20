@@ -17,7 +17,7 @@ contract KnsTokenMining
    uint256 public constant MINEABLE_TOKENS = 100 * 1000000 * ONE_KNS;
 
    uint256 public constant FINAL_PRINT_RATE = 1500;  // basis points
-   uint256 public constant TOTAL_EMISSION_TIME = 365 days;
+   uint256 public constant TOTAL_EMISSION_TIME = 180 days;
    uint256 public constant EMISSION_COEFF_1 = (MINEABLE_TOKENS * (20000 - FINAL_PRINT_RATE) * TOTAL_EMISSION_TIME);
    uint256 public constant EMISSION_COEFF_2 = (MINEABLE_TOKENS * (10000 - FINAL_PRINT_RATE));
    uint256 public constant HC_RESERVE_DECAY_TIME = 5 days;
