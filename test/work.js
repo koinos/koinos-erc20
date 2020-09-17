@@ -58,12 +58,27 @@ class JSWork
       return f_result.mod(this.p);
    }
 
+   is_unique(u)
+   {
+      for(let i=0;i<u.length;i++)
+      {
+         for(let j=0;j<i;j++)
+         {
+            if( u[i].eq(u[j]) )
+               return false;
+         }
+      }
+      return true;
+   }
+
    compute_work()
    {
       let _this = this;
       let w = function(i) { return _this.w(i); };
       let y = function(i) { return _this.y(i); };
       let v = [w(y(0)), w(y(1)), w(y(2)), w(y(3)), w(y(4)), w(y(5)), w(y(6)), w(y(7)), w(y(8)), w(y(9))];
+      if( !this.is_unique(v) )
+         return null;
       let work = this.xor(v).xor(this.h);
       v.push(work);
       return v;
