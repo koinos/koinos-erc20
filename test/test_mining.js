@@ -146,6 +146,7 @@ describe( "Mining tests", function()
       let one = new BN(1);
       let tested_success = false;
       let tested_failure = false;
+      let tested_null = false;
       let mining_gas = [];
       let when = (new BN(await mining.last_mint_time())).add(new BN(60*60*24));
       let i = 0;
@@ -153,7 +154,7 @@ describe( "Mining tests", function()
       let ti = (await mining.last_mint_time());
       let tf = (new BN(ti)).add(new BN(await mining.TOTAL_EMISSION_TIME())).toString();
 
-      while( (i < 30) || !(tested_success && tested_failure) && (mining_gas.length < 3) )
+      while( (i < 30) || !(tested_success && tested_failure && tested_null) && (mining_gas.length < 3) )
       {
          let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]}, owner );
 
@@ -170,7 +171,12 @@ describe( "Mining tests", function()
 
          let w_obj = new JSWork(seed, h, nonce);
          let work = w_obj.compute_work();
-         if( work[10].lt( mining_info.target ) )
+         if( work == null )
+         {
+            await expectRevert( mine( mining_info, nonce, when.toString() ), "Non-unique work components" );
+            tested_null = true;
+         }
+         else if( work[10].lt( mining_info.target ) )
          {
             let mined = await mine( mining_info, nonce, when.toString() );
             assert( when.eq( new BN(await mining.last_mint_time()) ) );
