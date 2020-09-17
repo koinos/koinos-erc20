@@ -90,7 +90,7 @@ contract KnsTokenMining
       require( recipients.length == split_percents.length, "Recipient and split percent array size mismatch" );
       array_check( split_percents );
 
-      require( get_pow_height( recipients, split_percents ) + 1 == pow_height, "pow_height mismatch" );
+      require( get_pow_height( _msgSender(), recipients, split_percents ) + 1 == pow_height, "pow_height mismatch" );
       uint256 h = get_secured_struct_hash( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
       uint256[11] memory w = work( recent_eth_block_hash, h, nonce );
       require( w[10] < target, "Work missed target" );     // always fails if target == 0
@@ -217,6 +217,13 @@ contract KnsTokenMining
       return tokens_minted;
    }
 
+   function increment_pow_height(
+      address[] memory recipients,
+      uint256[] memory split_percents ) internal
+   {
+      user_pow_height[uint256( keccak256( abi.encode( _msgSender(), recipients, split_percents ) ) )] += 1;
+   }
+
    function mine_impl(
       address[] memory recipients,
       uint256[] memory split_percents,
@@ -245,7 +252,7 @@ contract KnsTokenMining
       token_mined = convert_hash_credits( hc_submit );
 
       uint256[] memory distribution = distribute( recipients, split_percents, token_mined );
-      user_pow_height[uint256( keccak256( abi.encode( recipients, split_percents ) ) )] += 1;
+      increment_pow_height( recipients, split_percents );
 
       emit Mine( recipients, split_percents, hc_submit, hc_decay, token_virtual_mint, distribution );
    }
@@ -254,13 +261,14 @@ contract KnsTokenMining
     * Get the total number of proof-of-work submitted by a user.
     */
    function get_pow_height(
+      address from,
       address[] memory recipients,
       uint256[] memory split_percents
     )
       public view
       returns (uint256)
    {
-      return user_pow_height[uint256( keccak256( abi.encode( recipients, split_percents ) ) )];
+      return user_pow_height[uint256( keccak256( abi.encode( from, recipients, split_percents ) ) )];
    }
 
    /**
