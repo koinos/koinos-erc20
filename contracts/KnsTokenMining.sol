@@ -16,7 +16,6 @@ contract KnsTokenMining
    uint256 public constant ONE_KNS = 100000000;
    uint256 public constant MINEABLE_TOKENS = 100 * 1000000 * ONE_KNS;
 
-   // TODO this should be a number of hashes corresponding to 1000 CPU-hours
    uint256 public constant FINAL_PRINT_RATE = 1500;  // basis points
    uint256 public constant TOTAL_EMISSION_TIME = 365 days;
    uint256 public constant EMISSION_COEFF_1 = (MINEABLE_TOKENS * (20000 - FINAL_PRINT_RATE) * TOTAL_EMISSION_TIME);
@@ -65,6 +64,28 @@ contract KnsTokenMining
    }
 
    /**
+    * Require w[0]..w[9] are all distinct values.
+    *
+    * w[10] is untouched.
+    */
+   function check_uniqueness(
+      uint256[11] memory w
+      ) public pure
+   {
+      // Implement a simple direct comparison algorithm, unroll to optimize gas usage.
+      require( (w[0] != w[1]) & (w[0] != w[2]) & (w[0] != w[3]) & (w[0] != w[4]) & (w[0] != w[5]) & (w[0] != w[6]) & (w[0] != w[7]) & (w[0] != w[8]) & (w[0] != w[9])
+                              & (w[1] != w[2]) & (w[1] != w[3]) & (w[1] != w[4]) & (w[1] != w[5]) & (w[1] != w[6]) & (w[1] != w[7]) & (w[1] != w[8]) & (w[1] != w[9])
+                                               & (w[2] != w[3]) & (w[2] != w[4]) & (w[2] != w[5]) & (w[2] != w[6]) & (w[2] != w[7]) & (w[2] != w[8]) & (w[2] != w[9])
+                                                                & (w[3] != w[4]) & (w[3] != w[5]) & (w[3] != w[6]) & (w[3] != w[7]) & (w[3] != w[8]) & (w[3] != w[9])
+                                                                                 & (w[4] != w[5]) & (w[4] != w[6]) & (w[4] != w[7]) & (w[4] != w[8]) & (w[4] != w[9])
+                                                                                                  & (w[5] != w[6]) & (w[5] != w[7]) & (w[5] != w[8]) & (w[5] != w[9])
+                                                                                                                   & (w[6] != w[7]) & (w[6] != w[8]) & (w[6] != w[9])
+                                                                                                                                    & (w[7] != w[8]) & (w[7] != w[9])
+                                                                                                                                                     & (w[8] != w[9]),
+               "Non-unique work components" );
+   }
+
+   /**
     * Check proof of work for validity.
     *
     * Throws if the provided fields have any problems.
@@ -93,6 +114,7 @@ contract KnsTokenMining
       require( get_pow_height( _msgSender(), recipients, split_percents ) + 1 == pow_height, "pow_height mismatch" );
       uint256 h = get_secured_struct_hash( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height );
       uint256[11] memory w = work( recent_eth_block_hash, h, nonce );
+      check_uniqueness( w );
       require( w[10] < target, "Work missed target" );     // always fails if target == 0
    }
 
