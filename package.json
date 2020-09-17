@@ -14,7 +14,7 @@
     "mocha": "^8.1.1"
   },
   "scripts": {
-    "test": "mocha --exit --recursive test"
+    "test": "oz compile && mocha --exit --recursive test"
   },
   "repository": {
     "type": "git",

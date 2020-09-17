@@ -22,7 +22,7 @@ const START_HC_RESERVE = 1000;
 
 describe( "Mining tests", function()
 {
-   const [owner, alice, bob] = accounts;
+   const [owner, alice, bob, charlie] = accounts;
 
    beforeEach(async function () {
       this.project = await TestHelper({from: owner});
@@ -155,7 +155,7 @@ describe( "Mining tests", function()
 
       while( (i < 30) || !(tested_success && tested_failure) && (mining_gas.length < 3) )
       {
-         let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]} );
+         let mining_info = await setup_mining( web3, mining, {"recipients" : [alice, bob], "split_percents" : [7500, 2500]}, owner );
 
          let secured_struct_hash = hash_secured_struct( mining_info );
          let secured_struct_hash_2 = new BN(await mining.get_secured_struct_hash(
@@ -195,6 +195,19 @@ describe( "Mining tests", function()
 
             await expectRevert( mine( mining_info, nonce, when.toString() ), "pow_height mismatch" );
 
+            // Test other economic splits have different PoW Heights
+            mining_info.split_percents[0]++;
+            mining_info.split_percents[1]--;
+            assert( await mining.get_pow_height( mining_info.from, mining_info.recipients, mining_info.split_percents ) == 0 );
+
+            mining_info.split_percents[0]--;
+            mining_info.split_percents[1]++;
+            mining_info.recipients[1] = charlie;
+            assert( await mining.get_pow_height( mining_info.from, mining_info.recipients, mining_info.split_percents ) == 0 );
+
+            mining_info.recipients[1] = bob;
+            assert( await mining.get_pow_height( owner, mining_info.recipients, mining_info.split_percents ) == 0 );
+
             tested_success = true;
 
             //console.log( "ERC20 ABI:", IERC20.options.jsonInterface );
@@ -212,6 +225,7 @@ describe( "Mining tests", function()
          nonce = nonce.add(one);
          i++;
       }
+
       console.log( "Mining gas used:", mining_gas );
    } );
 } );
