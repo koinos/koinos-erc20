@@ -1,6 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-// Not using 0.6.8 to suppress SPDX license warnings, as contracts-ethereum-package does not exist until version 3.1.0
-pragma solidity >0.6.0 <0.6.8;
+pragma solidity ^0.6.0;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
