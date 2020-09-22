@@ -5,3 +5,7 @@
 /node_modules
 /dl
 /build
+
+# local env variables
+
+.env
