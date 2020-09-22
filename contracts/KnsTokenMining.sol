@@ -23,7 +23,7 @@ contract KnsTokenMining
    uint256 public constant EMISSION_COEFF_1 = (MINEABLE_TOKENS * (20000 - FINAL_PRINT_RATE) * TOTAL_EMISSION_TIME);
    uint256 public constant EMISSION_COEFF_2 = (MINEABLE_TOKENS * (10000 - FINAL_PRINT_RATE));
    uint256 public constant HC_RESERVE_DECAY_TIME = 5 days;
-   uint256 public constant RECENT_BLOCK_LIMIT = 64;
+   uint256 public constant RECENT_BLOCK_LIMIT = 96;
 
    uint256 public start_time;
    uint256 public token_reserve;
