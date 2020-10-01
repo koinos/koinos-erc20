@@ -46,6 +46,21 @@ contract KnsTokenMining
       token_reserve = 0;
 
       is_testing = testing;
+
+      _initial_mining_event( start_hc_reserve );
+   }
+
+   function _initial_mining_event( uint256 start_hc_reserve ) internal
+   {
+      address[] memory recipients = new address[](1);
+      uint256[] memory split_percents = new uint256[](1);
+      uint256[] memory tokens_mined = new uint256[](1);
+
+      recipients[0] = address(0);
+      split_percents[0] = 10000;
+      tokens_mined[0] = 0;
+
+      emit Mine( recipients, split_percents, start_hc_reserve, 0, 0, tokens_mined );
    }
 
    /**
