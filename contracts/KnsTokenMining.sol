@@ -324,6 +324,7 @@ contract KnsTokenMining
       uint256 pow_height,
       uint256 nonce ) public
    {
+      require( now >= start_time, "Mining has not started" );
       mine_impl( recipients, split_percents, recent_eth_block_number, recent_eth_block_hash, target, pow_height, nonce, now );
    }
 
