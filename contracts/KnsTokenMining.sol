@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "./IMintableERC20.sol";
 import "./KnsTokenWork.sol";
-import "./KnsToken.sol";
 
 contract KnsTokenMining
    is AccessControl,
