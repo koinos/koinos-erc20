@@ -88,9 +88,10 @@ describe( "Mining tests", function()
       let k = await mining.FINAL_PRINT_RATE() / 10000.0;
       let sat = await mining.ONE_KNS();
       let supply = await mining.MINEABLE_TOKENS();
+      let total_emission_time = await mining.TOTAL_EMISSION_TIME();
       supply = supply / sat;
       let f = function(x) { return (2.0 - k) * x - (1.0 - k) * x*x; };
-      let g = function(t) { return new BN( supply * ( f(t/(60.0*60.0*24.0*365.0)) ) ); };
+      let g = function(t) { return new BN( supply * ( f(t/total_emission_time) ) ); };
 
       let h = async function(t)
       {
@@ -106,8 +107,8 @@ describe( "Mining tests", function()
       assert( g(1).eq(h_1) );
       assert( g(1337).eq(await h(1337)) );
       assert( g(7654321).eq(await h(7654321)) );
-      assert( g(60*60*24*365).eq(await h(60*60*24*365)) );
-      assert( g(60*60*24*365).eq(new BN(supply)) );
+      assert( g(total_emission_time).eq(await h(total_emission_time)) );
+      assert( g(total_emission_time).eq(new BN(supply)) );
    } );
 
    it( "Check emission event", async function()
